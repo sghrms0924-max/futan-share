@@ -1,0 +1,1670 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="application-name" content="負担割合計算" />
+    <meta name="apple-mobile-web-app-title" content="負担割合計算" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#eceff4" />
+    <title>負担割合計算</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #eceff4;
+        --panel: rgba(255, 255, 255, 0.82);
+        --panel-solid: #ffffff;
+        --ink: #1d1d1f;
+        --muted: #6e6e73;
+        --muted-2: #8d8d92;
+        --line: rgba(60, 60, 67, 0.16);
+        --accent: #0a84ff;
+        --accent-pressed: #0071e3;
+        --soft: rgba(10, 132, 255, 0.1);
+        --danger: #ff3b30;
+        --shadow: 0 24px 70px rgba(29, 29, 31, 0.14);
+        --inner: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        --surface: rgba(246, 247, 251, 0.76);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.95), transparent 28%),
+          linear-gradient(135deg, #f7f8fb 0%, #e8ebf1 48%, #f4f1ec 100%);
+        color: var(--ink);
+        font-family:
+          -apple-system,
+          system-ui,
+          BlinkMacSystemFont,
+          "Hiragino Sans",
+          "Yu Gothic",
+          sans-serif;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .app {
+        width: min(1220px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 22px 0 44px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        align-items: center;
+        margin-bottom: 0;
+        padding: 12px 14px 12px 16px;
+        border: 1px solid var(--line);
+        border-radius: 10px 10px 0 0;
+        background: rgba(246, 247, 250, 0.82);
+        box-shadow: var(--inner);
+        backdrop-filter: blur(22px);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(22px, 3vw, 32px);
+        line-height: 1.15;
+        font-weight: 760;
+        letter-spacing: 0;
+      }
+
+      .chrome {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.38);
+        box-shadow: 0 34px 90px rgba(29, 29, 31, 0.18);
+        overflow: hidden;
+        backdrop-filter: blur(28px);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 168px minmax(0, 1fr);
+        min-height: 720px;
+        border-top: 1px solid var(--line);
+      }
+
+      .sidebar {
+        padding: 16px 12px;
+        background: rgba(235, 238, 245, 0.78);
+        border-right: 1px solid var(--line);
+      }
+
+      .sidebar-title {
+        margin: 0 8px 10px;
+        color: var(--muted-2);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        min-height: 30px;
+        border: 0;
+        padding: 6px 8px;
+        border-radius: 7px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      .nav-item.active {
+        background: rgba(10, 132, 255, 0.12);
+        color: var(--ink);
+      }
+
+      .nav-count {
+        color: var(--muted-2);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .content {
+        padding: 14px;
+        background: var(--surface);
+      }
+
+      .content[data-view="settlement"] .grid,
+      .content[data-view="ledger"] .grid,
+      .content[data-view="categories"] .grid,
+      .content[data-view="history"] .grid,
+      .content[data-view="sync"] .grid {
+        grid-template-columns: minmax(360px, 640px);
+        justify-content: center;
+      }
+
+      .content[data-view="settlement"] #ledgerSection,
+      .content[data-view="settlement"] #historySection,
+      .content[data-view="settlement"] #syncSection,
+      .content[data-view="ledger"] #categorySection,
+      .content[data-view="ledger"] #settlementSection,
+      .content[data-view="ledger"] #historySection,
+      .content[data-view="ledger"] #syncSection,
+      .content[data-view="categories"] #monthSection,
+      .content[data-view="categories"] #ratioSection,
+      .content[data-view="categories"] #subsidySection,
+      .content[data-view="categories"] #expenseSection,
+      .content[data-view="categories"] #settlementSection,
+      .content[data-view="categories"] #historySection,
+      .content[data-view="categories"] #syncSection,
+      .content[data-view="history"] #ledgerSection,
+      .content[data-view="history"] #settlementSection,
+      .content[data-view="history"] #syncSection,
+      .content[data-view="sync"] #ledgerSection,
+      .content[data-view="sync"] #settlementSection,
+      .content[data-view="sync"] #historySection {
+        display: none;
+      }
+
+      .title-row {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(380px, 0.9fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow: 0 20px 55px rgba(29, 29, 31, 0.11);
+        backdrop-filter: blur(26px);
+        overflow: hidden;
+      }
+
+      .section {
+        padding: 16px;
+      }
+
+      .section + .section {
+        border-top: 1px solid var(--line);
+      }
+
+      h2 {
+        margin: 0 0 13px;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .ratio-grid,
+      .subsidy-grid,
+      .month-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 560;
+      }
+
+      input,
+      select {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        padding: 6px 9px;
+        box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.02);
+      }
+
+      input:focus,
+      select:focus {
+        outline: 3px solid rgba(10, 132, 255, 0.18);
+        border-color: var(--accent);
+      }
+
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .toolbar h2 {
+        margin-bottom: 0;
+      }
+
+      .expense-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .expense-row {
+        display: grid;
+        grid-template-columns: minmax(130px, 1fr) minmax(110px, 0.72fr) minmax(132px, 0.86fr) 34px;
+        gap: 8px;
+        align-items: end;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: var(--inner);
+      }
+
+      .btn {
+        min-height: 32px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--ink);
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: var(--inner), 0 1px 2px rgba(29, 29, 31, 0.05);
+      }
+
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #ffffff;
+        box-shadow: 0 8px 18px rgba(10, 132, 255, 0.22);
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .btn.primary:active {
+        background: var(--accent-pressed);
+      }
+
+      .btn.ghost {
+        background: rgba(255, 255, 255, 0.42);
+      }
+
+      .icon-btn {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        color: var(--danger);
+      }
+
+      .summary {
+        position: sticky;
+        top: 14px;
+        overflow: hidden;
+      }
+
+      .result {
+        display: grid;
+        gap: 10px;
+      }
+
+      .action-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .action-card {
+        padding: 18px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, rgba(10, 132, 255, 0.16), rgba(10, 132, 255, 0.07));
+        border: 1px solid rgba(10, 132, 255, 0.2);
+        box-shadow: var(--inner);
+      }
+
+      .action-card .label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+        margin-bottom: 8px;
+      }
+
+      .action-card .value {
+        font-size: clamp(30px, 3.4vw, 42px);
+        font-weight: 800;
+        line-height: 1.1;
+        word-break: normal;
+        overflow-wrap: anywhere;
+      }
+
+      .action-card .sub {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .stat {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+        box-shadow: var(--inner);
+      }
+
+      .stat b {
+        display: block;
+        margin-top: 6px;
+        font-size: 19px;
+        color: var(--ink);
+        overflow-wrap: anywhere;
+      }
+
+      .breakdown {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .saved-result {
+        border-top: 1px solid var(--line);
+        margin-top: 4px;
+        padding-top: 14px;
+      }
+
+      .saved-result .empty {
+        padding: 12px;
+      }
+
+      .history-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .history-card {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: var(--inner);
+        padding: 12px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .history-card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+        margin-bottom: 10px;
+      }
+
+      .history-month {
+        font-size: 17px;
+        font-weight: 800;
+        color: var(--ink);
+      }
+
+      .history-date {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .history-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .history-stat {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .history-stat strong {
+        display: block;
+        margin-top: 4px;
+        color: var(--ink);
+        font-size: 16px;
+      }
+
+      .category-block {
+        border-top: 1px solid var(--line);
+        margin-top: 4px;
+        padding-top: 14px;
+      }
+
+      .category-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .category-editor {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .category-editor-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 34px;
+        gap: 8px;
+        align-items: end;
+      }
+
+      .category-row {
+        display: grid;
+        grid-template-columns: minmax(86px, 0.8fr) minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .bar {
+        height: 7px;
+        border-radius: 999px;
+        background: rgba(10, 132, 255, 0.12);
+        overflow: hidden;
+      }
+
+      .bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--accent);
+      }
+
+      .line-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .line-item strong {
+        color: var(--ink);
+        text-align: right;
+      }
+
+      .empty {
+        color: var(--muted);
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        padding: 18px;
+        line-height: 1.7;
+        background: rgba(255, 255, 255, 0.62);
+      }
+
+      .sync-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .sync-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .sync-actions .btn {
+        flex: 1;
+      }
+
+      .sync-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 12px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .sync-status strong {
+        color: var(--ink);
+      }
+
+      @media (max-width: 840px) {
+        header,
+        .grid,
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          padding: 10px;
+        }
+
+        .sidebar-title {
+          display: none;
+        }
+
+        .nav-item {
+          width: auto;
+          min-width: max-content;
+        }
+
+        .actions {
+          justify-content: stretch;
+        }
+
+        .actions .btn,
+        .toolbar .btn {
+          flex: 1;
+        }
+
+        .summary {
+          position: static;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .app {
+          width: min(100% - 20px, 1120px);
+          padding-top: 10px;
+        }
+
+        .ratio-grid,
+        .subsidy-grid,
+        .month-grid,
+        .action-grid,
+        .category-editor,
+        .stats {
+          grid-template-columns: 1fr;
+        }
+
+        .expense-row {
+          grid-template-columns: 1fr 1fr 34px;
+        }
+
+        .expense-row label:nth-child(3) {
+          grid-column: 1 / -1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <div class="chrome">
+        <header>
+          <div class="title-row">
+            <div>
+              <h1>負担割合計算</h1>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn ghost" id="exportButton" type="button">CSV書き出し</button>
+            <button class="btn ghost" id="resetButton" type="button">初期値に戻す</button>
+            <button class="btn primary" id="addButtonTop" type="button">支払いを追加</button>
+          </div>
+        </header>
+
+        <div class="workspace">
+          <nav class="sidebar" aria-label="メニュー">
+            <p class="sidebar-title">HOUSEHOLD</p>
+            <button class="nav-item active" type="button" data-view="settlement"><span>精算</span><span class="nav-count">Now</span></button>
+            <button class="nav-item" type="button" data-view="ledger"><span>家計簿</span><span class="nav-count">CSV</span></button>
+            <button class="nav-item" type="button" data-view="categories"><span>カテゴリ</span><span class="nav-count">Edit</span></button>
+            <button class="nav-item" type="button" data-view="history"><span>履歴</span><span class="nav-count">Past</span></button>
+            <button class="nav-item" type="button" data-view="sync"><span>同期</span><span class="nav-count">Cloud</span></button>
+          </nav>
+
+          <div class="content" data-view="settlement">
+            <div class="grid">
+              <section class="panel" id="ledgerSection">
+                <div class="section" id="monthSection">
+                  <h2>対象月</h2>
+                  <div class="month-grid">
+                    <label>
+                      月
+                      <input id="currentMonth" type="month" />
+                    </label>
+                  </div>
+                </div>
+
+                <div class="section" id="ratioSection">
+                  <h2>負担割合</h2>
+                  <div class="ratio-grid">
+                    <label>
+                      彩可
+                      <input id="wifeRatio" inputmode="numeric" type="number" min="0" step="1" />
+                    </label>
+                    <label>
+                      陽介
+                      <input id="meRatio" inputmode="numeric" type="number" min="0" step="1" />
+                    </label>
+                  </div>
+                </div>
+
+                <div class="section" id="subsidySection">
+                  <h2>補助</h2>
+                  <div class="subsidy-grid">
+                    <label>
+                      補助
+                      <input id="rentSubsidy" inputmode="numeric" type="number" min="0" step="1000" />
+                    </label>
+                  </div>
+                </div>
+
+                <div class="section" id="categorySection">
+                  <div class="toolbar">
+                    <h2>カテゴリ</h2>
+                    <button class="btn" id="addCategoryButton" type="button">追加</button>
+                  </div>
+                  <div class="category-editor" id="categoryEditor"></div>
+                </div>
+
+                <div class="section" id="expenseSection">
+                  <div class="toolbar">
+                    <h2>支払い</h2>
+                    <button class="btn" id="addButton" type="button">追加</button>
+                  </div>
+                  <div class="expense-list" id="expenseList"></div>
+                </div>
+              </section>
+
+              <aside class="panel summary" id="settlementSection">
+                <div class="section result">
+                  <div class="toolbar">
+                    <h2>精算結果</h2>
+                    <button class="btn primary" id="saveSettlementButton" type="button">この月の結果を保存</button>
+                  </div>
+                  <div class="action-grid">
+                    <div class="action-card">
+                      <div class="label">彩可</div>
+                      <div class="value" id="wifeAction"></div>
+                      <div class="sub" id="wifeActionSub"></div>
+                    </div>
+                    <div class="action-card">
+                      <div class="label">陽介</div>
+                      <div class="value" id="meAction"></div>
+                      <div class="sub" id="meActionSub"></div>
+                    </div>
+                  </div>
+                  <div class="stats">
+                    <div class="stat">
+                      合計支出
+                      <b id="totalExpense"></b>
+                    </div>
+                    <div class="stat">
+                      補助後の負担対象
+                      <b id="netExpense"></b>
+                    </div>
+                  </div>
+                  <div class="breakdown" id="breakdown"></div>
+                  <div class="saved-result">
+                    <h2>保存済み</h2>
+                    <div id="savedSettlement"></div>
+                  </div>
+                  <div class="category-block">
+                    <h2>カテゴリ別</h2>
+                    <div class="category-list" id="categoryList"></div>
+                  </div>
+                </div>
+              </aside>
+              <section class="panel" id="historySection">
+                <div class="section">
+                  <h2>保存した精算結果</h2>
+                  <div class="history-list" id="historyList"></div>
+                </div>
+              </section>
+              <section class="panel" id="syncSection">
+                <div class="section">
+                  <div class="toolbar">
+                    <h2>同期</h2>
+                    <button class="btn primary" id="syncNowButton" type="button">今すぐ同期</button>
+                  </div>
+                  <div class="sync-grid">
+                    <div class="sync-status">
+                      <span id="syncStatus">未設定</span>
+                      <strong id="syncUpdatedAt">-</strong>
+                    </div>
+                    <label>
+                      Supabase URL
+                      <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co" />
+                    </label>
+                    <label>
+                      Publishable key
+                      <input id="supabaseAnonKey" type="password" autocomplete="off" placeholder="SupabaseのPublishable key" />
+                    </label>
+                    <label>
+                      共有ID
+                      <input id="householdId" autocomplete="off" placeholder="例: yosuke-ayaka-2026" />
+                    </label>
+                    <div class="sync-actions">
+                      <button class="btn" id="saveSyncConfigButton" type="button">設定を保存</button>
+                      <button class="btn" id="pullSyncButton" type="button">クラウドから取得</button>
+                      <button class="btn" id="pushSyncButton" type="button">クラウドへ保存</button>
+                    </div>
+                    <div class="empty">
+                      MacとiPhoneで同じSupabase URL、Publishable key、共有IDを入れると同じ保存内容を使えます。
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <template id="expenseTemplate">
+      <div class="expense-row">
+        <label>
+          カテゴリ
+          <select class="expense-category"></select>
+        </label>
+        <label>
+          金額
+          <input class="expense-amount" inputmode="numeric" type="number" min="0" step="100" />
+        </label>
+        <label>
+          支払元
+          <select class="expense-payer">
+            <option value="shared">共通口座</option>
+            <option value="me">陽介が立替</option>
+            <option value="wife">彩可が立替</option>
+          </select>
+        </label>
+        <button class="btn icon-btn expense-delete" type="button" aria-label="削除" title="削除">×</button>
+      </div>
+    </template>
+
+    <script>
+      const storageKey = "life-cost-share-v1";
+      const syncConfigKey = "life-cost-share-sync-v1";
+      const yen = new Intl.NumberFormat("ja-JP", {
+        style: "currency",
+        currency: "JPY",
+        maximumFractionDigits: 0,
+      });
+      const defaultCategories = ["家賃", "食費", "日用品", "光熱費", "通信", "交通", "医療", "娯楽", "その他"];
+
+      function currentMonthKey() {
+        const date = new Date();
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      }
+
+      function createDefaultMonthData() {
+        return {
+          rentSubsidy: 50000,
+          expenses: [
+            { name: "家賃", amount: 165000, category: "家賃", payer: "me" },
+            { name: "食費・日用品", amount: 0, category: "食費", payer: "shared" },
+            { name: "彩可が現金で買ったもの", amount: 0, category: "日用品", payer: "wife" },
+          ],
+        };
+      }
+
+      const initialMonth = currentMonthKey();
+      const defaultState = {
+        wifeRatio: 4,
+        meRatio: 6,
+        currentMonth: initialMonth,
+        categories: defaultCategories,
+        months: {
+          [initialMonth]: createDefaultMonthData(),
+        },
+      };
+
+      const ids = {
+        currentMonth: document.querySelector("#currentMonth"),
+        wifeRatio: document.querySelector("#wifeRatio"),
+        meRatio: document.querySelector("#meRatio"),
+        rentSubsidy: document.querySelector("#rentSubsidy"),
+        expenseList: document.querySelector("#expenseList"),
+        template: document.querySelector("#expenseTemplate"),
+        wifeAction: document.querySelector("#wifeAction"),
+        wifeActionSub: document.querySelector("#wifeActionSub"),
+        meAction: document.querySelector("#meAction"),
+        meActionSub: document.querySelector("#meActionSub"),
+        totalExpense: document.querySelector("#totalExpense"),
+        netExpense: document.querySelector("#netExpense"),
+        breakdown: document.querySelector("#breakdown"),
+        categoryList: document.querySelector("#categoryList"),
+        savedSettlement: document.querySelector("#savedSettlement"),
+        historyList: document.querySelector("#historyList"),
+        categoryEditor: document.querySelector("#categoryEditor"),
+        addCategoryButton: document.querySelector("#addCategoryButton"),
+        addButton: document.querySelector("#addButton"),
+        addButtonTop: document.querySelector("#addButtonTop"),
+        saveSettlementButton: document.querySelector("#saveSettlementButton"),
+        exportButton: document.querySelector("#exportButton"),
+        resetButton: document.querySelector("#resetButton"),
+        syncStatus: document.querySelector("#syncStatus"),
+        syncUpdatedAt: document.querySelector("#syncUpdatedAt"),
+        supabaseUrl: document.querySelector("#supabaseUrl"),
+        supabaseAnonKey: document.querySelector("#supabaseAnonKey"),
+        householdId: document.querySelector("#householdId"),
+        saveSyncConfigButton: document.querySelector("#saveSyncConfigButton"),
+        syncNowButton: document.querySelector("#syncNowButton"),
+        pullSyncButton: document.querySelector("#pullSyncButton"),
+        pushSyncButton: document.querySelector("#pushSyncButton"),
+      };
+
+      let state = loadState();
+      let syncConfig = loadSyncConfig();
+      let focusNewExpense = false;
+      let syncTimer = null;
+      let isApplyingRemoteState = false;
+      let syncReady = false;
+
+      function clone(value) {
+        if (typeof structuredClone === "function") return structuredClone(value);
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function loadState() {
+        const saved = readSavedState();
+        if (!saved) return clone(defaultState);
+
+        try {
+          return normalizeState({ ...clone(defaultState), ...JSON.parse(saved) });
+        } catch {
+          return clone(defaultState);
+        }
+      }
+
+      function readSavedState() {
+        try {
+          return window.localStorage.getItem(storageKey);
+        } catch {
+          return null;
+        }
+      }
+
+      function normalizeState(nextState) {
+        const migratedMonth = nextState.currentMonth || currentMonthKey();
+        const months = nextState.months && typeof nextState.months === "object" ? nextState.months : {};
+        const categories = normalizeCategories(nextState.categories);
+
+        if (Array.isArray(nextState.expenses) || nextState.rentSubsidy !== undefined) {
+          months[migratedMonth] = {
+            rentSubsidy: nextState.rentSubsidy,
+            expenses: nextState.expenses,
+          };
+        }
+
+        Object.keys(months).forEach((month) => {
+          months[month] = normalizeMonthData(months[month], categories);
+        });
+
+        if (!months[migratedMonth]) {
+          months[migratedMonth] = createDefaultMonthData();
+        }
+
+        return {
+          wifeRatio: Number(nextState.wifeRatio) || defaultState.wifeRatio,
+          meRatio: Number(nextState.meRatio) || defaultState.meRatio,
+          currentMonth: migratedMonth,
+          categories,
+          months,
+          settlements: nextState.settlements && typeof nextState.settlements === "object" ? nextState.settlements : {},
+          updatedAt: nextState.updatedAt || new Date().toISOString(),
+        };
+      }
+
+      function normalizeCategories(categories) {
+        const names = Array.isArray(categories) ? categories : defaultCategories;
+        const normalized = names.map((name) => String(name).trim()).filter(Boolean);
+        const unique = [...new Set(normalized)];
+        return unique.length > 0 ? unique : ["その他"];
+      }
+
+      function normalizeMonthData(monthData = {}, categories = defaultCategories) {
+        const rentSubsidy = Number(monthData.rentSubsidy);
+        const expenses = Array.isArray(monthData.expenses) ? monthData.expenses : createDefaultMonthData().expenses;
+
+        return {
+          rentSubsidy: Number.isFinite(rentSubsidy) ? rentSubsidy : 50000,
+          expenses: expenses.map((expense) => normalizeExpense(expense, categories)),
+        };
+      }
+
+      function normalizeExpense(expense, categories = state.categories) {
+        const category = categories.includes(expense.category) ? expense.category : inferCategory(expense.name, categories);
+        const payer = ["shared", "me", "wife"].includes(expense.payer) ? expense.payer : "shared";
+
+        return {
+          name: expense.name || "",
+          amount: Number(expense.amount) || 0,
+          category,
+          payer,
+        };
+      }
+
+      function inferCategory(name = "", categories = defaultCategories) {
+        if (name.includes("家賃") && categories.includes("家賃")) return "家賃";
+        if (name.includes("食") && categories.includes("食費")) return "食費";
+        if ((name.includes("電気") || name.includes("ガス") || name.includes("水道")) && categories.includes("光熱費")) {
+          return "光熱費";
+        }
+        return categories.includes("その他") ? "その他" : categories[0];
+      }
+
+      function currentMonthData() {
+        if (!state.months[state.currentMonth]) {
+          state.months[state.currentMonth] = normalizeMonthData(createDefaultMonthData(), state.categories);
+        }
+
+        return state.months[state.currentMonth];
+      }
+
+      function saveState(options = {}) {
+        if (!isApplyingRemoteState) {
+          state.updatedAt = new Date().toISOString();
+        }
+
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify(state));
+        } catch {
+          // ファイル直開きで保存が使えない場合も、画面上の計算は動かす。
+        }
+
+        renderSyncStatus();
+
+        if (!options.skipSync && syncReady && isSyncConfigured()) {
+          queueCloudSave();
+        }
+      }
+
+      function loadSyncConfig() {
+        try {
+          const saved = window.localStorage.getItem(syncConfigKey);
+          if (!saved) return { supabaseUrl: "", anonKey: "", householdId: "" };
+          const parsed = JSON.parse(saved);
+          return {
+            supabaseUrl: String(parsed.supabaseUrl || ""),
+            anonKey: String(parsed.anonKey || ""),
+            householdId: String(parsed.householdId || ""),
+          };
+        } catch {
+          return { supabaseUrl: "", anonKey: "", householdId: "" };
+        }
+      }
+
+      function saveSyncConfig() {
+        syncConfig = {
+          supabaseUrl: ids.supabaseUrl.value.trim().replace(/\/$/, ""),
+          anonKey: ids.supabaseAnonKey.value.trim(),
+          householdId: ids.householdId.value.trim(),
+        };
+
+        try {
+          window.localStorage.setItem(syncConfigKey, JSON.stringify(syncConfig));
+        } catch {
+          // 保存できない環境でも画面上の設定は保持する。
+        }
+
+        renderSyncStatus("同期設定を保存しました。");
+      }
+
+      function isSyncConfigured() {
+        return Boolean(syncConfig.supabaseUrl && syncConfig.anonKey && syncConfig.householdId);
+      }
+
+      function renderSyncStatus(message) {
+        if (!ids.syncStatus) return;
+
+        ids.supabaseUrl.value = syncConfig.supabaseUrl || "";
+        ids.supabaseAnonKey.value = syncConfig.anonKey || "";
+        ids.householdId.value = syncConfig.householdId || "";
+        ids.syncStatus.textContent = message || (isSyncConfigured() ? "同期設定済み" : "未設定");
+        ids.syncUpdatedAt.textContent = state.updatedAt ? `更新: ${formatDateTime(state.updatedAt)}` : "-";
+      }
+
+      function formatDateTime(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "-";
+        return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
+
+      function queueCloudSave() {
+        clearTimeout(syncTimer);
+        syncTimer = window.setTimeout(() => {
+          pushCloudState({ quiet: true });
+        }, 900);
+      }
+
+      async function supabaseRequest(path, options = {}) {
+        if (!isSyncConfigured()) {
+          throw new Error("同期設定が未入力です。");
+        }
+
+        let response;
+
+        try {
+          response = await fetch(`${syncConfig.supabaseUrl}/rest/v1/${path}`, {
+            ...options,
+            headers: {
+              apikey: syncConfig.anonKey,
+              "Content-Type": "application/json",
+              ...(options.headers || {}),
+            },
+          });
+        } catch {
+          if (window.location.protocol === "file:") {
+            throw new Error("file://では同期通信がブロックされました。VercelのURLで開いて試してください。");
+          }
+
+          throw new Error("Supabaseへ接続できませんでした。URLとPublishable keyを確認してください。");
+        }
+
+        if (!response.ok) {
+          const detail = await response.text();
+          throw new Error(detail || `Supabase error: ${response.status}`);
+        }
+
+        if (response.status === 204) return null;
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+      }
+
+      async function fetchCloudState() {
+        const rows = await supabaseRequest("rpc/get_household_state", {
+          method: "POST",
+          body: JSON.stringify({ p_household_id: syncConfig.householdId }),
+        });
+        return Array.isArray(rows) ? rows[0] : null;
+      }
+
+      async function pullCloudState() {
+        saveSyncConfig();
+        renderSyncStatus("クラウドから取得しています...");
+
+        try {
+          const remote = await fetchCloudState();
+          if (!remote?.data) {
+            renderSyncStatus("クラウドにはまだ保存がありません。");
+            return;
+          }
+
+          isApplyingRemoteState = true;
+          state = normalizeState(remote.data);
+          state.updatedAt = remote.updated_at || remote.data.updatedAt || new Date().toISOString();
+          saveState({ skipSync: true });
+          render();
+          isApplyingRemoteState = false;
+          renderSyncStatus("クラウドの内容を反映しました。");
+        } catch (error) {
+          isApplyingRemoteState = false;
+          renderSyncStatus(`取得できませんでした: ${error.message}`);
+        }
+      }
+
+      async function pushCloudState(options = {}) {
+        if (!isSyncConfigured()) return;
+        if (!options.quiet) renderSyncStatus("クラウドへ保存しています...");
+
+        try {
+          await supabaseRequest("rpc/save_household_state", {
+            method: "POST",
+            body: JSON.stringify({
+              p_household_id: syncConfig.householdId,
+              p_data: state,
+              p_updated_at: state.updatedAt || new Date().toISOString(),
+            }),
+          });
+          renderSyncStatus(options.quiet ? "自動同期しました。" : "クラウドへ保存しました。");
+        } catch (error) {
+          renderSyncStatus(`保存できませんでした: ${error.message}`);
+        }
+      }
+
+      async function syncCloudState() {
+        saveSyncConfig();
+        renderSyncStatus("同期しています...");
+
+        try {
+          const remote = await fetchCloudState();
+          const remoteTime = remote?.updated_at ? new Date(remote.updated_at).getTime() : 0;
+          const localTime = state.updatedAt ? new Date(state.updatedAt).getTime() : 0;
+
+          if (remote?.data && remoteTime > localTime) {
+            isApplyingRemoteState = true;
+            state = normalizeState(remote.data);
+            state.updatedAt = remote.updated_at || remote.data.updatedAt;
+            saveState({ skipSync: true });
+            render();
+            isApplyingRemoteState = false;
+            renderSyncStatus("新しいクラウド内容を反映しました。");
+            return;
+          }
+
+          await pushCloudState({ quiet: true });
+          renderSyncStatus("最新の内容を同期しました。");
+        } catch (error) {
+          isApplyingRemoteState = false;
+          renderSyncStatus(`同期できませんでした: ${error.message}`);
+        }
+      }
+
+      function numberValue(value) {
+        return Number.parseFloat(value) || 0;
+      }
+
+      function formatSigned(amount) {
+        const absolute = yen.format(Math.abs(Math.round(amount)));
+        return amount < 0 ? `-${absolute}` : absolute;
+      }
+
+      function roundToHundred(amount) {
+        return Math.sign(amount) * Math.round(Math.abs(amount) / 100) * 100;
+      }
+
+      function addExpense(expense = { name: "", amount: 0, category: "その他", payer: "shared" }) {
+        currentMonthData().expenses.unshift(normalizeExpense(expense));
+        focusNewExpense = true;
+        render();
+      }
+
+      function addCategory() {
+        const base = "新しいカテゴリ";
+        let name = base;
+        let count = 2;
+
+        while (state.categories.includes(name)) {
+          name = `${base}${count}`;
+          count += 1;
+        }
+
+        state.categories.push(name);
+        saveState();
+        render();
+      }
+
+      function syncTopFields() {
+        ids.currentMonth.value = state.currentMonth;
+        ids.wifeRatio.value = state.wifeRatio;
+        ids.meRatio.value = state.meRatio;
+        ids.rentSubsidy.value = currentMonthData().rentSubsidy;
+      }
+
+      function renderExpenses() {
+        ids.expenseList.replaceChildren();
+        const expenses = currentMonthData().expenses;
+
+        if (expenses.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "支払いがまだありません。追加するとすぐに計算されます。";
+          ids.expenseList.append(empty);
+          return;
+        }
+
+        expenses.forEach((expense, index) => {
+          const row = ids.template.content.firstElementChild.cloneNode(true);
+          const amount = row.querySelector(".expense-amount");
+          const category = row.querySelector(".expense-category");
+          const payer = row.querySelector(".expense-payer");
+          const deleteButton = row.querySelector(".expense-delete");
+
+          amount.value = expense.amount || "";
+          renderCategoryOptions(category, expense.category);
+          category.value = expense.category;
+          payer.value = expense.payer;
+
+          amount.addEventListener("input", () => {
+            expenses[index].amount = numberValue(amount.value);
+            update();
+          });
+
+          category.addEventListener("change", () => {
+            expenses[index].category = category.value;
+            update();
+          });
+
+          payer.addEventListener("change", () => {
+            expenses[index].payer = payer.value;
+            update();
+          });
+
+          deleteButton.addEventListener("click", () => {
+            expenses.splice(index, 1);
+            render();
+          });
+
+          ids.expenseList.append(row);
+
+          if (focusNewExpense && index === 0) {
+            requestAnimationFrame(() => {
+              row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+              category.focus();
+            });
+          }
+        });
+
+        focusNewExpense = false;
+      }
+
+      function renderCategoryOptions(select, selected) {
+        select.replaceChildren(
+          ...state.categories.map((category) => {
+            const option = document.createElement("option");
+            option.value = category;
+            option.textContent = category;
+            option.selected = category === selected;
+            return option;
+          }),
+        );
+      }
+
+      function renderCategoryEditor() {
+        ids.categoryEditor.replaceChildren(
+          ...state.categories.map((category, index) => {
+            const row = document.createElement("div");
+            row.className = "category-editor-row";
+            row.innerHTML = `
+              <label>
+                カテゴリ名
+                <input value="${escapeAttribute(category)}" />
+              </label>
+              <button class="btn icon-btn" type="button" aria-label="カテゴリを削除" title="削除">×</button>
+            `;
+
+            const input = row.querySelector("input");
+            const deleteButton = row.querySelector("button");
+            input.addEventListener("change", () => renameCategory(index, input.value));
+            deleteButton.addEventListener("click", () => deleteCategory(index));
+            ids.categoryEditor.append(row);
+            return row;
+          }),
+        );
+      }
+
+      function renameCategory(index, nextName) {
+        const oldName = state.categories[index];
+        const name = nextName.trim();
+
+        if (!name || state.categories.some((category, categoryIndex) => category === name && categoryIndex !== index)) {
+          render();
+          return;
+        }
+
+        state.categories[index] = name;
+        Object.values(state.months).forEach((month) => {
+          month.expenses.forEach((expense) => {
+            if (expense.category === oldName) expense.category = name;
+          });
+        });
+        saveState();
+        render();
+      }
+
+      function deleteCategory(index) {
+        if (state.categories.length <= 1) return;
+
+        const removed = state.categories[index];
+        state.categories.splice(index, 1);
+        const fallback = state.categories.includes("その他") ? "その他" : state.categories[0];
+
+        Object.values(state.months).forEach((month) => {
+          month.expenses.forEach((expense) => {
+            if (expense.category === removed) expense.category = fallback;
+          });
+        });
+        saveState();
+        render();
+      }
+
+      function escapeAttribute(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function calculate() {
+        const ratioTotal = state.wifeRatio + state.meRatio || 1;
+        const data = currentMonthData();
+        const categoryTotals = Object.fromEntries(state.categories.map((category) => [category, 0]));
+        const totals = data.expenses.reduce(
+          (sum, expense) => {
+            const amount = Number(expense.amount) || 0;
+            sum.total += amount;
+            sum[expense.payer] += amount;
+            categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + amount;
+            return sum;
+          },
+          { total: 0, shared: 0, me: 0, wife: 0 },
+        );
+
+        const subsidy = Math.min(Number(data.rentSubsidy) || 0, totals.total);
+        const meAdvanceAfterSubsidy = Math.max(totals.me - subsidy, 0);
+        const netTotal = totals.total - subsidy;
+        const meTarget = netTotal * (state.meRatio / ratioTotal);
+        const wifeTarget = netTotal * (state.wifeRatio / ratioTotal);
+        const meCommonTarget = meTarget - meAdvanceAfterSubsidy;
+        const wifeCommonTarget = wifeTarget - totals.wife;
+        const meAction = meCommonTarget;
+        const wifeAction = wifeCommonTarget;
+
+        return {
+          totals,
+          subsidy,
+          meAdvanceAfterSubsidy,
+          netTotal,
+          meTarget,
+          wifeTarget,
+          meCommonTarget,
+          wifeCommonTarget,
+          meAction,
+          wifeAction,
+          categoryTotals,
+        };
+      }
+
+      function renderSummary() {
+        const result = calculate();
+
+        ids.totalExpense.textContent = yen.format(Math.round(result.totals.total));
+        ids.netExpense.textContent = yen.format(Math.round(result.netTotal));
+
+        renderAction(ids.wifeAction, ids.wifeActionSub, result.wifeAction);
+        renderAction(ids.meAction, ids.meActionSub, result.meAction);
+
+        const rows = [
+          ["補助", `-${yen.format(Math.round(result.subsidy))}`],
+          ["補助後の負担対象", yen.format(Math.round(result.netTotal))],
+          ["陽介の本来負担", yen.format(Math.round(result.meTarget))],
+          ["彩可の本来負担", yen.format(Math.round(result.wifeTarget))],
+          ["陽介の立替分", yen.format(Math.round(result.totals.me))],
+          ["彩可の立替分", yen.format(Math.round(result.totals.wife))],
+          ["陽介の共通口座負担（100円単位）", formatSigned(roundToHundred(result.meCommonTarget))],
+          ["彩可の共通口座負担（100円単位）", formatSigned(roundToHundred(result.wifeCommonTarget))],
+          ["共通口座から支払った分", yen.format(Math.round(result.totals.shared))],
+        ];
+
+        ids.breakdown.replaceChildren(
+          ...rows.map(([label, value]) => {
+            const item = document.createElement("div");
+            item.className = "line-item";
+            item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+            return item;
+          }),
+        );
+
+        renderSavedSettlement();
+        renderCategoryList(result.categoryTotals, result.totals.total);
+      }
+
+      function renderSavedSettlement() {
+        const saved = state.settlements?.[state.currentMonth];
+
+        if (!saved) {
+          ids.savedSettlement.innerHTML = `<div class="empty">この月の精算結果はまだ保存されていません。</div>`;
+          return;
+        }
+
+        const savedAt = new Date(saved.savedAt);
+        const savedAtText = Number.isNaN(savedAt.getTime()) ? "" : `${savedAt.getFullYear()}/${savedAt.getMonth() + 1}/${savedAt.getDate()}`;
+        const rows = [
+          ["保存日", savedAtText],
+          ["彩可（100円単位）", formatSigned(saved.wifeRounded)],
+          ["陽介（100円単位）", formatSigned(saved.meRounded)],
+          ["合計支出", yen.format(Math.round(saved.totalExpense))],
+          ["補助後の負担対象", yen.format(Math.round(saved.netExpense))],
+        ];
+
+        ids.savedSettlement.replaceChildren(
+          ...rows.map(([label, value]) => {
+            const item = document.createElement("div");
+            item.className = "line-item";
+            item.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+            return item;
+          }),
+        );
+      }
+
+      function renderHistoryList() {
+        const entries = Object.entries(state.settlements || {}).sort(([a], [b]) => b.localeCompare(a));
+
+        if (entries.length === 0) {
+          ids.historyList.innerHTML = `<div class="empty">保存した精算結果はまだありません。</div>`;
+          return;
+        }
+
+        ids.historyList.replaceChildren(
+          ...entries.map(([month, saved]) => {
+            const savedAt = new Date(saved.savedAt);
+            const savedAtText = Number.isNaN(savedAt.getTime()) ? "" : `${savedAt.getFullYear()}/${savedAt.getMonth() + 1}/${savedAt.getDate()}`;
+            const card = document.createElement("button");
+            card.className = "history-card";
+            card.type = "button";
+            card.innerHTML = `
+              <div class="history-card-head">
+                <span class="history-month">${formatMonthLabel(month)}</span>
+                <span class="history-date">${savedAtText}</span>
+              </div>
+              <div class="history-grid">
+                <span class="history-stat">彩可<strong>${formatAction(saved.wifeRounded)}</strong></span>
+                <span class="history-stat">陽介<strong>${formatAction(saved.meRounded)}</strong></span>
+                <span class="history-stat">合計支出<strong>${yen.format(Math.round(saved.totalExpense))}</strong></span>
+                <span class="history-stat">負担対象<strong>${yen.format(Math.round(saved.netExpense))}</strong></span>
+              </div>
+            `;
+            card.addEventListener("click", () => {
+              state.currentMonth = month;
+              saveState();
+              render();
+              switchView("settlement");
+            });
+            return card;
+          }),
+        );
+      }
+
+      function saveSettlementResult() {
+        const result = calculate();
+        state.settlements[state.currentMonth] = {
+          savedAt: new Date().toISOString(),
+          wifeExact: result.wifeAction,
+          wifeRounded: roundToHundred(result.wifeAction),
+          meExact: result.meAction,
+          meRounded: roundToHundred(result.meAction),
+          totalExpense: result.totals.total,
+          netExpense: result.netTotal,
+        };
+        saveState();
+        renderSavedSettlement();
+        renderHistoryList();
+      }
+
+      function formatMonthLabel(month) {
+        const [year, monthNumber] = month.split("-");
+        return `${year}年${Number(monthNumber)}月`;
+      }
+
+      function formatAction(amount) {
+        const absolute = yen.format(Math.abs(Math.round(amount)));
+        if (amount === 0) return "精算なし";
+        return amount > 0 ? `${absolute} 入れる` : `${absolute} 引き出す`;
+      }
+
+      function renderCategoryList(categoryTotals, total) {
+        const rows = state.categories
+          .map((category) => [category, categoryTotals[category] || 0])
+          .filter(([, amount]) => amount > 0);
+
+        if (rows.length === 0) {
+          ids.categoryList.innerHTML = `<div class="empty">カテゴリ集計はまだありません。</div>`;
+          return;
+        }
+
+        ids.categoryList.replaceChildren(
+          ...rows.map(([category, amount]) => {
+            const row = document.createElement("div");
+            row.className = "category-row";
+            const percent = total > 0 ? Math.round((amount / total) * 100) : 0;
+            row.innerHTML = `
+              <span>${category}</span>
+              <div class="bar" aria-hidden="true"><span style="width: ${percent}%"></span></div>
+              <strong>${yen.format(Math.round(amount))}</strong>
+            `;
+            return row;
+          }),
+        );
+      }
+
+      function renderAction(valueElement, subElement, action) {
+        const roundedAction = roundToHundred(action);
+        const amount = Math.abs(roundedAction);
+
+        if (amount === 0) {
+          valueElement.textContent = "精算なし";
+        } else if (roundedAction > 0) {
+          valueElement.textContent = `${yen.format(amount)} 入れる`;
+        } else {
+          valueElement.textContent = `${yen.format(amount)} 引き出す`;
+        }
+
+        const exactAmount = yen.format(Math.abs(Math.round(action)));
+        subElement.textContent = `調整前：${exactAmount}`;
+      }
+
+      function update() {
+        state.wifeRatio = numberValue(ids.wifeRatio.value);
+        state.meRatio = numberValue(ids.meRatio.value);
+        currentMonthData().rentSubsidy = numberValue(ids.rentSubsidy.value);
+        saveState();
+        renderSummary();
+      }
+
+      function render() {
+        syncTopFields();
+        renderCategoryEditor();
+        renderExpenses();
+        renderHistoryList();
+        renderSyncStatus();
+        update();
+      }
+
+      ids.currentMonth.addEventListener("change", () => {
+        state.currentMonth = ids.currentMonth.value || currentMonthKey();
+        currentMonthData();
+        saveState();
+        render();
+      });
+
+      document.querySelectorAll(".nav-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          switchView(item.dataset.view);
+        });
+      });
+
+      function switchView(view) {
+        document.querySelectorAll(".nav-item").forEach((navItem) => {
+          navItem.classList.toggle("active", navItem.dataset.view === view);
+        });
+        document.querySelector(".content").dataset.view = view;
+      }
+
+      [ids.wifeRatio, ids.meRatio, ids.rentSubsidy].forEach((input) => {
+        input.addEventListener("input", update);
+      });
+
+      ids.addButton.addEventListener("click", () => addExpense());
+      ids.addButtonTop.addEventListener("click", () => addExpense());
+      ids.addCategoryButton.addEventListener("click", addCategory);
+      ids.saveSettlementButton.addEventListener("click", saveSettlementResult);
+      ids.exportButton.addEventListener("click", exportCurrentMonthCsv);
+      ids.saveSyncConfigButton.addEventListener("click", saveSyncConfig);
+      ids.syncNowButton.addEventListener("click", syncCloudState);
+      ids.pullSyncButton.addEventListener("click", pullCloudState);
+      ids.pushSyncButton.addEventListener("click", () => {
+        saveSyncConfig();
+        pushCloudState();
+      });
+      ids.resetButton.addEventListener("click", () => {
+        state.months[state.currentMonth] = normalizeMonthData(createDefaultMonthData(), state.categories);
+        saveState();
+        render();
+      });
+
+      function exportCurrentMonthCsv() {
+        const data = currentMonthData();
+        const header = ["対象月", "カテゴリ", "金額", "支払元"];
+        const payerLabels = { shared: "共通口座", me: "陽介が立替", wife: "彩可が立替" };
+        const rows = data.expenses.map((expense) => [
+          state.currentMonth,
+          expense.category,
+          expense.amount,
+          payerLabels[expense.payer],
+        ]);
+        const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+        const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `生活費_${state.currentMonth}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function csvCell(value) {
+        const text = String(value ?? "");
+        return `"${text.replaceAll('"', '""')}"`;
+      }
+
+      render();
+      syncReady = true;
+      if (isSyncConfigured()) {
+        syncCloudState();
+      }
+    </script>
+  </body>
+</html>
