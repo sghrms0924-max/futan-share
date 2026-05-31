@@ -1038,7 +1038,7 @@
 
       function saveSyncConfig() {
         syncConfig = {
-          supabaseUrl: ids.supabaseUrl.value.trim().replace(/\/$/, ""),
+          supabaseUrl: normalizeSupabaseUrl(ids.supabaseUrl.value),
           anonKey: ids.supabaseAnonKey.value.trim(),
           householdId: ids.householdId.value.trim(),
         };
@@ -1050,6 +1050,15 @@
         }
 
         renderSyncStatus("同期設定を保存しました。");
+      }
+
+      function normalizeSupabaseUrl(value) {
+        let url = value.trim().replace(/\/$/, "");
+        if (url.startsWith("ttps://")) url = `h${url}`;
+        if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+          url = `https://${url}`;
+        }
+        return url;
       }
 
       function isSyncConfigured() {
@@ -1084,6 +1093,10 @@
           throw new Error("同期設定が未入力です。");
         }
 
+        if (window.location.protocol !== "file:") {
+          return appApiRequest(path, options);
+        }
+
         let response;
 
         try {
@@ -1111,6 +1124,38 @@
         if (response.status === 204) return null;
         const text = await response.text();
         return text ? JSON.parse(text) : null;
+      }
+
+      async function appApiRequest(path, options = {}) {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const action = path.includes("save_household_state") ? "save" : "get";
+
+        let response;
+        try {
+          response = await fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action,
+              supabaseUrl: syncConfig.supabaseUrl,
+              publishableKey: syncConfig.anonKey,
+              householdId: syncConfig.householdId,
+              data: body.p_data,
+              updatedAt: body.p_updated_at,
+            }),
+          });
+        } catch {
+          throw new Error("アプリの同期APIへ接続できませんでした。Vercelの再デプロイを確認してください。");
+        }
+
+        const text = await response.text();
+        const payload = text ? JSON.parse(text) : null;
+
+        if (!response.ok) {
+          throw new Error(payload?.error || `Sync API error: ${response.status}`);
+        }
+
+        return payload?.data ?? null;
       }
 
       async function fetchCloudState() {

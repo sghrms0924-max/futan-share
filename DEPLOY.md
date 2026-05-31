@@ -11,6 +11,8 @@
 5. Build Commandは空、Output Directoryも空のままでDeployする。
 6. 発行された `https://...vercel.app` のURLをiPhoneで開く。
 
+同期機能を使う場合は、`api/sync.js` も一緒にアップロードしてください。
+
 ## コマンドで公開する方法
 
 このフォルダで以下を実行します。

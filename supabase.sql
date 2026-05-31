@@ -10,6 +10,9 @@ drop policy if exists "allow household app read" on household_states;
 drop policy if exists "allow household app insert" on household_states;
 drop policy if exists "allow household app update" on household_states;
 
+grant usage on schema public to anon;
+grant usage on schema public to authenticated;
+
 create or replace function get_household_state(p_household_id text)
 returns table(data jsonb, updated_at timestamptz)
 language sql
@@ -41,3 +44,5 @@ $$;
 
 grant execute on function get_household_state(text) to anon;
 grant execute on function save_household_state(text, jsonb, timestamptz) to anon;
+grant execute on function get_household_state(text) to authenticated;
+grant execute on function save_household_state(text, jsonb, timestamptz) to authenticated;
