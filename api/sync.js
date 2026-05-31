@@ -4,6 +4,7 @@ export default async function handler(request, response) {
       ok: true,
       hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
       hasPublishableKey: Boolean(process.env.SUPABASE_PUBLISHABLE_KEY),
+      supabaseHost: getHost(process.env.SUPABASE_URL),
     });
     return;
   }
@@ -49,7 +50,11 @@ export default async function handler(request, response) {
 
     response.status(200).json({ data: payload });
   } catch (error) {
-    response.status(502).json({ error: `Supabaseへ接続できませんでした: ${error.message}` });
+    response.status(502).json({
+      error: `Supabaseへ接続できませんでした: ${error.message}`,
+      cause: error.cause?.message || "",
+      supabaseHost: getHost(baseUrl),
+    });
   }
 }
 
@@ -60,4 +65,12 @@ function normalizeSupabaseUrl(value = "") {
     url = `https://${url}`;
   }
   return url;
+}
+
+function getHost(value = "") {
+  try {
+    return new URL(normalizeSupabaseUrl(value)).host;
+  } catch {
+    return "";
+  }
 }
