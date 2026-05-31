@@ -1,3 +1,5 @@
+import https from "node:https";
+
 export default async function handler(request, response) {
   if (request.method === "GET") {
     response.status(200).json({
@@ -30,32 +32,69 @@ export default async function handler(request, response) {
       : { p_household_id: householdId };
 
   try {
-    const supabaseResponse = await fetch(`${baseUrl}/rest/v1/rpc/${rpcName}`, {
-      method: "POST",
-      headers: {
-        apikey: apiKey,
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
+    const supabaseResponse = await postJson(`${baseUrl}/rest/v1/rpc/${rpcName}`, body, {
+      apikey: apiKey,
+      Authorization: `Bearer ${apiKey}`,
     });
 
-    const text = await supabaseResponse.text();
-    const payload = text ? JSON.parse(text) : null;
-
-    if (!supabaseResponse.ok) {
-      response.status(supabaseResponse.status).json({ error: payload?.message || text || "Supabase error" });
+    if (supabaseResponse.status < 200 || supabaseResponse.status >= 300) {
+      response.status(supabaseResponse.status).json({
+        error: supabaseResponse.payload?.message || supabaseResponse.text || "Supabase error",
+        supabaseStatus: supabaseResponse.status,
+        supabaseHost: getHost(baseUrl),
+      });
       return;
     }
 
-    response.status(200).json({ data: payload });
+    response.status(200).json({ data: supabaseResponse.payload });
   } catch (error) {
     response.status(502).json({
       error: `Supabaseへ接続できませんでした: ${error.message}`,
+      code: error.code || "",
       cause: error.cause?.message || "",
       supabaseHost: getHost(baseUrl),
     });
   }
+}
+
+function postJson(url, body, headers = {}) {
+  const payload = JSON.stringify(body);
+  const target = new URL(url);
+
+  return new Promise((resolve, reject) => {
+    const request = https.request(
+      {
+        hostname: target.hostname,
+        path: `${target.pathname}${target.search}`,
+        method: "POST",
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+        },
+      },
+      (res) => {
+        let text = "";
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => {
+          text += chunk;
+        });
+        res.on("end", () => {
+          let parsed = null;
+          try {
+            parsed = text ? JSON.parse(text) : null;
+          } catch {
+            parsed = null;
+          }
+          resolve({ status: res.statusCode || 0, text, payload: parsed });
+        });
+      },
+    );
+
+    request.on("error", reject);
+    request.write(payload);
+    request.end();
+  });
 }
 
 function normalizeSupabaseUrl(value = "") {
