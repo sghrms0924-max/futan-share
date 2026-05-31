@@ -23,6 +23,7 @@ export default async function handler(request, response) {
       method: "POST",
       headers: {
         apikey: publishableKey,
+        Authorization: `Bearer ${publishableKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -37,8 +38,8 @@ export default async function handler(request, response) {
     }
 
     response.status(200).json({ data: payload });
-  } catch {
-    response.status(502).json({ error: "Supabaseへ接続できませんでした。" });
+  } catch (error) {
+    response.status(502).json({ error: `Supabaseへ接続できませんでした: ${error.message}` });
   }
 }
 
