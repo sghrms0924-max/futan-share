@@ -1062,6 +1062,10 @@
       }
 
       function isSyncConfigured() {
+        if (window.location.protocol !== "file:") {
+          return Boolean(syncConfig.householdId);
+        }
+
         return Boolean(syncConfig.supabaseUrl && syncConfig.anonKey && syncConfig.householdId);
       }
 
@@ -1071,7 +1075,7 @@
         ids.supabaseUrl.value = syncConfig.supabaseUrl || "";
         ids.supabaseAnonKey.value = syncConfig.anonKey || "";
         ids.householdId.value = syncConfig.householdId || "";
-        ids.syncStatus.textContent = message || (isSyncConfigured() ? "同期設定済み" : "未設定");
+        ids.syncStatus.textContent = message || (isSyncConfigured() ? "同期設定済み" : "共有IDを入力してください");
         ids.syncUpdatedAt.textContent = state.updatedAt ? `更新: ${formatDateTime(state.updatedAt)}` : "-";
       }
 
