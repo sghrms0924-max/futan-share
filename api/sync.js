@@ -1,4 +1,13 @@
 export default async function handler(request, response) {
+  if (request.method === "GET") {
+    response.status(200).json({
+      ok: true,
+      hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
+      hasPublishableKey: Boolean(process.env.SUPABASE_PUBLISHABLE_KEY),
+    });
+    return;
+  }
+
   if (request.method !== "POST") {
     response.status(405).json({ error: "Method not allowed" });
     return;
@@ -24,6 +33,7 @@ export default async function handler(request, response) {
       method: "POST",
       headers: {
         apikey: apiKey,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
