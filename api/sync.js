@@ -5,9 +5,10 @@ export default async function handler(request, response) {
   }
 
   const { action, supabaseUrl, publishableKey, householdId, data, updatedAt } = request.body || {};
-  const baseUrl = normalizeSupabaseUrl(supabaseUrl);
+  const baseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL || supabaseUrl);
+  const apiKey = process.env.SUPABASE_PUBLISHABLE_KEY || publishableKey;
 
-  if (!baseUrl || !publishableKey || !householdId) {
+  if (!baseUrl || !apiKey || !householdId) {
     response.status(400).json({ error: "同期設定が足りません。" });
     return;
   }
@@ -22,8 +23,7 @@ export default async function handler(request, response) {
     const supabaseResponse = await fetch(`${baseUrl}/rest/v1/rpc/${rpcName}`, {
       method: "POST",
       headers: {
-        apikey: publishableKey,
-        Authorization: `Bearer ${publishableKey}`,
+        apikey: apiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
